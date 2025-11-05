@@ -1,0 +1,16 @@
+# Ignorar arquivos desnecessários no build do Docker
+.git
+.gitignore
+README.md
+.dockerignore
+docker-compose.yml
+
+# Arquivos de desenvolvimento
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Node modules (se houver)
+node_modules
+npm-debug.log

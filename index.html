@@ -3,13 +3,474 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jelani Bros</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Jelani Bros - Menu Principal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animação de fundo */
+        .bg-animation {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .bg-animation span {
+            position: absolute;
+            display: block;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            animation: float 15s infinite;
+            border-radius: 50%;
+        }
+
+        .bg-animation span:nth-child(1) { left: 10%; animation-delay: 0s; }
+        .bg-animation span:nth-child(2) { left: 20%; animation-delay: 2s; animation-duration: 12s; }
+        .bg-animation span:nth-child(3) { left: 30%; animation-delay: 4s; }
+        .bg-animation span:nth-child(4) { left: 40%; animation-delay: 0s; animation-duration: 18s; }
+        .bg-animation span:nth-child(5) { left: 50%; animation-delay: 3s; }
+        .bg-animation span:nth-child(6) { left: 60%; animation-delay: 1s; animation-duration: 20s; }
+        .bg-animation span:nth-child(7) { left: 70%; animation-delay: 5s; }
+        .bg-animation span:nth-child(8) { left: 80%; animation-delay: 2s; animation-duration: 16s; }
+        .bg-animation span:nth-child(9) { left: 90%; animation-delay: 4s; }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) scale(1);
+                opacity: 0;
+            }
+        }
+
+        .menu-container {
+            position: relative;
+            z-index: 1;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 50px 60px;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+            animation: slideIn 0.8s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .game-logo {
+            font-size: 3.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .game-subtitle {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 40px;
+            font-style: italic;
+        }
+
+        .character-preview {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .character-preview img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.2));
+            transition: transform 0.3s;
+        }
+
+        .character-preview img:hover {
+            transform: scale(1.2) rotate(5deg);
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .menu-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            font-size: 1.3em;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .menu-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .menu-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .menu-btn:active {
+            transform: translateY(0);
+        }
+
+        .menu-btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-phase1 {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-phase2 {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-instructions {
+            background: linear-gradient(135deg, #ffd93d 0%, #f39c12 100%);
+            box-shadow: 0 5px 15px rgba(255, 217, 61, 0.4);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            animation: slideDown 0.4s ease-out;
+            position: relative;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s;
+            line-height: 20px;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .modal h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .instructions {
+            text-align: left;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .instructions h3 {
+            color: #764ba2;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .key-combo {
+            display: inline-flex;
+            align-items: center;
+            background: #f0f0f0;
+            padding: 5px 12px;
+            border-radius: 8px;
+            margin: 5px;
+            font-weight: bold;
+            color: #667eea;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .footer {
+            margin-top: 30px;
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 600px) {
+            .menu-container {
+                padding: 30px 20px;
+            }
+
+            .game-logo {
+                font-size: 2.5em;
+            }
+
+            .menu-btn {
+                font-size: 1.1em;
+                padding: 15px 30px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div id="game-container">
-        <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <!-- Animação de fundo -->
+    <div class="bg-animation">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
     </div>
-    <script src="script.js"></script>
+
+    <!-- Menu Principal -->
+    <div class="menu-container">
+        <h1 class="game-logo">🎮 JELANI BROS</h1>
+        <p class="game-subtitle">A Aventura Épica de Plataforma</p>
+
+        <!-- Preview dos personagens -->
+        <div class="character-preview">
+            <img src="assets/jelani.png" alt="Jelani" title="Jelani - O Herói">
+            <img src="assets/enemy.gif" alt="Inimigo" title="Inimigo - Cuidado!">
+            <img src="assets/xuxu.png" alt="Xuxu" title="Xuxu - Vida Extra">
+        </div>
+
+        <!-- Estatísticas do jogo -->
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number">3</div>
+                <div class="stat-label">Fases</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">3</div>
+                <div class="stat-label">Vidas</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">∞</div>
+                <div class="stat-label">Diversão</div>
+            </div>
+        </div>
+
+        <!-- Botões do menu -->
+        <div class="menu-buttons">
+            <a href="jelani_bros_game.html" class="menu-btn btn-phase1">
+                <span>🌟 FASE 1 - INICIANTE</span>
+            </a>
+            <a href="jelani_bros_fase2.html" class="menu-btn btn-phase2">
+                <span>🔥 FASE 2 - DESAFIO EXTREMO</span>
+            </a>
+            <a href="jelani_bros_fase3.html" class="menu-btn" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); box-shadow: 0 5px 15px rgba(155, 89, 182, 0.4);">
+                <span>🛡️ FASE 3 - A BUSCA PELO ESCUDO</span>
+            </a>
+            <button class="menu-btn btn-instructions" onclick="showInstructions()">
+                <span>📖 INSTRUÇÕES</span>
+            </button>
+        </div>
+
+        <div class="footer">
+            Desenvolvido com ❤️ usando Phaser 3
+        </div>
+    </div>
+
+    <!-- Modal de Instruções -->
+    <div id="instructionsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeInstructions()">&times;</span>
+            <h2>📖 Como Jogar</h2>
+            <div class="instructions">
+                <h3>🎮 Controles</h3>
+                <p>
+                    <span class="key-combo">← →</span> Mover para esquerda/direita<br>
+                    <span class="key-combo">↑</span> Pular<br>
+                    <span class="key-combo">↓</span> Agachar (reduz altura)
+                </p>
+
+                <h3>🎯 Objetivo</h3>
+                <p>
+                    • Alcance a área de vitória (dourada na Fase 1, verde na Fase 2)<br>
+                    • Evite os inimigos vermelhos que se movem<br>
+                    • Complete as fases sem perder todas as vidas
+                </p>
+
+                <h3>💚 Itens</h3>
+                <p>
+                    • <strong>Xuxu (verde)</strong>: Colete para ganhar +1 vida<br>
+                    • Explore o mapa para encontrar todos os itens
+                </p>
+
+                <h3>⚠️ Dicas</h3>
+                <p>
+                    • Use o agachamento para passar por espaços baixos<br>
+                    • O personagem vira automaticamente ao mudar de direção<br>
+                    • A Fase 2 é muito mais difícil - prepare-se!<br>
+                    • Timing é essencial para pular entre plataformas
+                </p>
+
+                <h3>🏆 Fases</h3>
+                <p>
+                    • <strong>Fase 1</strong>: Nível introdutório, perfeito para aprender<br>
+                    • <strong>Fase 2</strong>: Mapa maior, mais inimigos, mais velocidade!<br>
+                    • <strong>Fase 3</strong>: Encontre o NPC Minichurros e ganhe um escudo protetor!
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showInstructions() {
+            document.getElementById('instructionsModal').style.display = 'block';
+        }
+
+        function closeInstructions() {
+            document.getElementById('instructionsModal').style.display = 'none';
+        }
+
+        // Fechar modal ao clicar fora dele
+        window.onclick = function(event) {
+            const modal = document.getElementById('instructionsModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Fechar modal com ESC
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeInstructions();
+            }
+        });
+
+        // Efeito de som ao passar o mouse (opcional)
+        const buttons = document.querySelectorAll('.menu-btn');
+        buttons.forEach(button => {
+            button.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-3px)';
+            });
+            button.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
 </body>
 </html>

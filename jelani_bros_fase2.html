@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jelani Bros - Fase 2</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1a0033;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            width: 100%;
+            height: 100%;
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #ffd700;
+            font-size: 20px;
+            z-index: 100;
+            text-shadow: 2px 2px 4px #000;
+        }
+        #menu-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #ffd700;
+            color: #000;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 100;
+        }
+        #menu-button:hover {
+            background-color: #ffed4e;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div id="ui">
+        <div>FASE 2 - DESAFIO EXTREMO</div>
+        <div>Vidas: <span id="lives">3</span></div>
+        <div>Tempo: <span id="timer">0</span>s</div>
+    </div>
+    <button style="position: absolute; top: 10px; right: 250px; background-color: #667eea; color: #fff; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; z-index: 100;" onclick="window.location.href='index.html'">🏠 Menu</button>
+    <button style="position: absolute; top: 10px; right: 140px; background-color: #4CAF50; color: #fff; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; z-index: 100;" onclick="window.location.href='jelani_bros_game.html'">← Fase 1</button>
+    <button style="position: absolute; top: 10px; right: 10px; background-color: #9b59b6; color: #fff; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; z-index: 100;" onclick="window.location.href='jelani_bros_fase3.html'">Fase 3 →</button>
+
+    <script>
+        const config = {
+            type: Phaser.AUTO,
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                width: 1200,
+                height: 600
+            },
+            parent: 'game-container',
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 400 },
+                    debug: false
+                }
+            },
+            scene: {
+                init: init,
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        const game = new Phaser.Game(config);
+
+        let player, platforms, enemies, victoryArea, cursors;
+        let lives = 3;
+        let lastDirection = 'down';
+        let startTime;
+        let timerText;
+
+        function init() {
+            this.registry.set('lives', lives);
+        }
+
+        function preload() {
+            // Carregar imagens
+            this.load.image('jelani', 'assets/jelani.png');
+            this.load.image('enemy', 'assets/enemy.gif');
+            this.load.image('xuxu', 'assets/xuxu.png');
+        }
+
+        function create() {
+            const scene = this;
+            startTime = Date.now();
+            
+            // Ground texture - cor diferente para fase 2
+            const graphics = this.make.graphics({ fillStyle: { color: 0x8B4513 } });
+            graphics.fillRect(0, 0, 1, 1);
+            graphics.generateTexture('ground', 1, 1);
+            graphics.destroy();
+
+            // Victory texture
+            const victoryGraphics = this.make.graphics({ fillStyle: { color: 0x00ff00 } });
+            victoryGraphics.fillRect(0, 0, 1, 1);
+            victoryGraphics.generateTexture('victory', 1, 1);
+            victoryGraphics.destroy();
+            
+            this.physics.world.setBounds(0, 0, 1200, 600);
+
+            // Platforms - Fase 2 com desafios maiores
+            platforms = this.physics.add.staticGroup();
+            platforms.create(600, 580, 'ground').setScale(1200, 20).refreshBody(); // Chão
+
+            // Plataformas móveis simuladas (pequenas e espaçadas)
+            platforms.create(100, 480, 'ground').setScale(80, 15).refreshBody();
+            platforms.create(250, 420, 'ground').setScale(60, 15).refreshBody();
+            platforms.create(380, 360, 'ground').setScale(70, 15).refreshBody();
+            platforms.create(530, 300, 'ground').setScale(65, 15).refreshBody();
+            platforms.create(680, 240, 'ground').setScale(60, 15).refreshBody();
+            platforms.create(820, 300, 'ground').setScale(70, 15).refreshBody();
+            platforms.create(970, 360, 'ground').setScale(65, 15).refreshBody();
+            platforms.create(1100, 420, 'ground').setScale(60, 15).refreshBody();
+            
+            // Plataformas intermediárias
+            platforms.create(200, 200, 'ground').setScale(80, 15).refreshBody();
+            platforms.create(450, 150, 'ground').setScale(90, 15).refreshBody();
+            platforms.create(750, 120, 'ground').setScale(100, 15).refreshBody();
+            platforms.create(1000, 200, 'ground').setScale(80, 15).refreshBody();
+
+            // Player
+            player = this.physics.add.sprite(50, 400, 'jelani');
+            player.setScale(0.1);
+            player.setBounce(0.2);
+            player.setCollideWorldBounds(true);
+            player.originalScale = 0.1;
+            player.crouchScale = 0.06;
+            player.isCrouching = false;
+            this.physics.add.collider(player, platforms);
+
+            // Inimigos - Mais rápidos e em maior número (usando enemy.gif)
+            enemies = this.physics.add.group();
+            const enemyPositions = [
+                { x: 250, y: 380, speed: 150 },
+                { x: 530, y: 260, speed: 180 },
+                { x: 680, y: 200, speed: 160 },
+                { x: 820, y: 260, speed: 170 },
+                { x: 970, y: 320, speed: 190 },
+                { x: 450, y: 110, speed: 200 }
+            ];
+
+            enemyPositions.forEach((pos, i) => {
+                const enemy = enemies.create(pos.x, pos.y, 'enemy');
+                enemy.setScale(0.18); // Reduzido para 18% do tamanho original (um pouco maior que fase 1)
+                enemy.setBounce(1);
+                enemy.setCollideWorldBounds(true);
+                enemy.setVelocityX(i % 2 === 0 ? -pos.speed : pos.speed);
+            });
+
+            // Adicionar xuxu (recuperação de vida)
+            const xuxus = this.physics.add.group();
+            const xuxuPositions = [
+                { x: 150, y: 440 },
+                { x: 380, y: 320 },
+                { x: 750, y: 80 },
+                { x: 1000, y: 160 }
+            ];
+            
+            xuxuPositions.forEach(pos => {
+                const xuxu = xuxus.create(pos.x, pos.y, 'xuxu');
+                xuxu.setScale(0.06);
+                xuxu.body.allowGravity = false;
+                xuxu.body.immovable = true;
+            });
+
+            // Colisão para coletar xuxu e recuperar vida
+            this.physics.add.overlap(player, xuxus, (player, xuxu) => {
+                xuxu.destroy();
+                lives++;
+                document.getElementById('lives').textContent = lives;
+                
+                // Efeito visual de texto
+                const lifeText = scene.add.text(xuxu.x, xuxu.y - 30, '+1 VIDA', {
+                    fontSize: '24px',
+                    fill: '#00ff00',
+                    fontStyle: 'bold'
+                });
+                scene.tweens.add({
+                    targets: lifeText,
+                    y: lifeText.y - 60,
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: () => lifeText.destroy()
+                });
+            }, null, this);
+
+            this.physics.add.collider(enemies, platforms);
+            this.physics.add.collider(player, enemies, () => {
+                lives--;
+                document.getElementById('lives').textContent = lives;
+
+                if (lives <= 0) {
+                    const finalTime = Math.floor((Date.now() - startTime) / 1000);
+                    alert(`Game Over! Você sobreviveu por ${finalTime} segundos na Fase 2.`);
+                    lives = 3;
+                    scene.scene.restart();
+                } else {
+                    player.setPosition(50, 400);
+                    alert(`Você perdeu uma vida! Cuidado com os inimigos!`);
+                }
+            }, null, this);
+
+            // Victory Area - No topo final
+            victoryArea = this.physics.add.staticImage(1150, 80, 'victory')
+                .setScale(50, 80)
+                .refreshBody();
+
+            this.physics.add.overlap(player, victoryArea, () => {
+                const finalTime = Math.floor((Date.now() - startTime) / 1000);
+                alert(`🎉 PARABÉNS! Você completou a Fase 2 em ${finalTime} segundos! Você é um mestre!`);
+                window.location.href = 'jelani_bros_game.html';
+            }, null, this);
+
+            // Camera
+            this.cameras.main.setBounds(0, 0, 1200, 600);
+            this.cameras.main.startFollow(player, true, 0.1, 0.1);
+
+            // Controls
+            cursors = this.input.keyboard.createCursorKeys();
+            document.getElementById('lives').textContent = lives;
+            
+            // Timer update
+            setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('timer').textContent = elapsed;
+            }, 1000);
+        }
+
+        function update() {
+            // Controle de agachamento
+            if (cursors.down.isDown && player.body.touching.down) {
+                if (!player.isCrouching) {
+                    player.scaleY = player.crouchScale;
+                    player.isCrouching = true;
+                }
+                player.setVelocityX(0);
+                lastDirection = 'down';
+            } else {
+                if (player.isCrouching) {
+                    player.scaleY = player.originalScale;
+                    player.isCrouching = false;
+                }
+
+                // Movimento mais rápido na fase 2
+                if (cursors.left.isDown) {
+                    player.setVelocityX(-200);
+                    player.setFlipX(true);
+                    lastDirection = 'left';
+                } else if (cursors.right.isDown) {
+                    player.setVelocityX(200);
+                    player.setFlipX(false);
+                    lastDirection = 'right';
+                } else {
+                    player.setVelocityX(0);
+                }
+            }
+
+            // Pulo mais alto na fase 2
+            if (cursors.up.isDown && player.body.touching.down && !player.isCrouching) {
+                player.setVelocityY(-380);
+                lastDirection = 'up';
+            }
+        }
+    </script>
+</body>
+</html>

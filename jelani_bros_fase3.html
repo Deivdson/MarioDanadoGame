@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jelani Bros - Fase 3</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #2c3e50;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            width: 100%;
+            height: 100%;
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #ecf0f1;
+            font-size: 20px;
+            z-index: 100;
+            text-shadow: 2px 2px 4px #000;
+        }
+        
+        /* Dialog Box */
+        #dialog-box {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(44, 62, 80, 0.95);
+            border: 4px solid #3498db;
+            border-radius: 15px;
+            padding: 25px 30px;
+            max-width: 600px;
+            width: 85%;
+            z-index: 200;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        #dialog-content {
+            color: #ecf0f1;
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        #dialog-speaker {
+            color: #3498db;
+            font-weight: bold;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        
+        #dialog-continue {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            float: right;
+            transition: all 0.3s;
+        }
+        
+        #dialog-continue:hover {
+            background: #2980b9;
+            transform: scale(1.05);
+        }
+        
+        .typing-indicator {
+            display: inline-block;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        #shield-indicator {
+            display: none;
+            position: absolute;
+            top: 60px;
+            left: 10px;
+            background: rgba(52, 152, 219, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 100;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div id="ui">
+        <div>FASE 3 - A BUSCA PELO ESCUDO</div>
+        <div>Vidas: <span id="lives">3</span></div>
+        <div>Tempo: <span id="timer">0</span>s</div>
+    </div>
+    <div id="shield-indicator">
+        🛡️ ESCUDO ATIVO - Você está protegido!
+    </div>
+    <button style="position: absolute; top: 10px; right: 140px; background-color: #667eea; color: #fff; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; z-index: 100;" onclick="window.location.href='index.html'">🏠 Menu</button>
+    <button style="position: absolute; top: 10px; right: 10px; background-color: #ffd700; color: #000; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; z-index: 100;" onclick="window.location.href='jelani_bros_fase2.html'">← Fase 2</button>
+
+    <!-- Dialog Box -->
+    <div id="dialog-box">
+        <div id="dialog-speaker"></div>
+        <div id="dialog-content"></div>
+        <button id="dialog-continue">Continuar ➜</button>
+    </div>
+
+    <script>
+        // Sistema de diálogo
+        let currentDialogIndex = 0;
+        let dialogSequence = [];
+        let dialogCallback = null;
+
+        function showDialog(speaker, text, callback) {
+            const dialogBox = document.getElementById('dialog-box');
+            const dialogSpeaker = document.getElementById('dialog-speaker');
+            const dialogContent = document.getElementById('dialog-content');
+            
+            isDialogActive = true;
+            dialogBox.style.display = 'block';
+            dialogSpeaker.textContent = speaker + ':';
+            dialogContent.textContent = text;
+            
+            dialogCallback = callback;
+        }
+
+        function hideDialog() {
+            document.getElementById('dialog-box').style.display = 'none';
+            isDialogActive = false;
+            if (dialogCallback) {
+                dialogCallback();
+                dialogCallback = null;
+            }
+        }
+
+        function showDialogSequence(dialogs, finalCallback) {
+            dialogSequence = dialogs;
+            currentDialogIndex = 0;
+            dialogCallback = finalCallback;
+            showNextDialog();
+        }
+
+        function showNextDialog() {
+            if (currentDialogIndex < dialogSequence.length) {
+                const dialog = dialogSequence[currentDialogIndex];
+                showDialog(dialog.speaker, dialog.text, () => {
+                    currentDialogIndex++;
+                    showNextDialog();
+                });
+            } else {
+                hideDialog();
+                if (dialogCallback) {
+                    dialogCallback();
+                    dialogCallback = null;
+                }
+            }
+        }
+
+        document.getElementById('dialog-continue').addEventListener('click', () => {
+            if (currentDialogIndex < dialogSequence.length - 1) {
+                currentDialogIndex++;
+                showNextDialog();
+            } else {
+                hideDialog();
+            }
+        });
+
+        // Função para criar texture do inimigo com Canvas
+        function createEnemyTexture(scene) {
+            const canvas = scene.textures.createCanvas('enemy-canvas', 40, 40);
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#E74C3C';
+            ctx.beginPath();
+            ctx.arc(20, 20, 18, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#ff0000';
+            ctx.fillRect(10, 14, 6, 6);
+            ctx.fillRect(24, 14, 6, 6);
+            
+            ctx.fillStyle = '#000';
+            ctx.fillRect(12, 16, 2, 2);
+            ctx.fillRect(26, 16, 2, 2);
+            
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(20, 25, 6, 0, Math.PI);
+            ctx.stroke();
+            
+            canvas.refresh();
+        }
+
+        // Criar escudo visual
+        function createShieldTexture(scene) {
+            const canvas = scene.textures.createCanvas('shield', 60, 60);
+            const ctx = canvas.getContext('2d');
+            
+            // Escudo azul brilhante
+            ctx.fillStyle = 'rgba(52, 152, 219, 0.6)';
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 3;
+            
+            ctx.beginPath();
+            ctx.arc(30, 30, 25, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            // Brilho interno
+            ctx.fillStyle = 'rgba(236, 240, 241, 0.4)';
+            ctx.beginPath();
+            ctx.arc(30, 30, 15, 0, Math.PI * 2);
+            ctx.fill();
+            
+            canvas.refresh();
+        }
+
+        const config = {
+            type: Phaser.AUTO,
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                width: 1400,
+                height: 700
+            },
+            parent: 'game-container',
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 450 },
+                    debug: false
+                }
+            },
+            scene: {
+                init: init,
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        const game = new Phaser.Game(config);
+
+        let player, platforms, enemies, victoryArea, cursors, npc;
+        let lives = 3;
+        let lastDirection = 'down';
+        let startTime;
+        let hasShield = false;
+        let shieldSprite = null;
+        let hasMetNPC = false;
+        let gameScene;
+        let isDialogActive = false;
+
+        function init() {
+            this.registry.set('lives', lives);
+        }
+
+        function preload() {
+            this.load.image('jelani', 'assets/jelani.png');
+            this.load.image('enemy', 'assets/enemy.gif');
+            this.load.image('xuxu', 'assets/xuxu.png');
+            this.load.image('minichurros', 'assets/minichurros.jpg');
+        }
+
+        function create() {
+            const scene = this;
+            gameScene = scene;
+            startTime = Date.now();
+            
+            createEnemyTexture(this);
+            createShieldTexture(this);
+            
+            // Ground texture
+            const graphics = this.make.graphics({ fillStyle: { color: 0x34495e } });
+            graphics.fillRect(0, 0, 1, 1);
+            graphics.generateTexture('ground', 1, 1);
+            graphics.destroy();
+
+            // Victory texture
+            const victoryGraphics = this.make.graphics({ fillStyle: { color: 0xe74c3c } });
+            victoryGraphics.fillRect(0, 0, 1, 1);
+            victoryGraphics.generateTexture('victory', 1, 1);
+            victoryGraphics.destroy();
+            
+            this.physics.world.setBounds(0, 0, 1400, 700);
+
+            // Platforms - Fase 3 complexa
+            platforms = this.physics.add.staticGroup();
+            platforms.create(700, 680, 'ground').setScale(1400, 20).refreshBody();
+
+            // Plataformas complexas
+            platforms.create(200, 580, 'ground').setScale(150, 15).refreshBody();
+            platforms.create(400, 500, 'ground').setScale(120, 15).refreshBody();
+            platforms.create(600, 420, 'ground').setScale(100, 15).refreshBody();
+            platforms.create(800, 350, 'ground').setScale(150, 15).refreshBody();
+            platforms.create(1050, 450, 'ground').setScale(120, 15).refreshBody();
+            platforms.create(1250, 380, 'ground').setScale(100, 15).refreshBody();
+            
+            // Plataforma do NPC
+            platforms.create(700, 250, 'ground').setScale(200, 20).refreshBody();
+            
+            // Plataformas superiores
+            platforms.create(300, 180, 'ground').setScale(120, 15).refreshBody();
+            platforms.create(1100, 180, 'ground').setScale(120, 15).refreshBody();
+
+            // Player
+            player = this.physics.add.sprite(100, 500, 'jelani');
+            player.setScale(0.1);
+            player.setBounce(0.2);
+            player.setCollideWorldBounds(true);
+            player.originalScale = 0.1;
+            player.crouchScale = 0.06;
+            player.isCrouching = false;
+            this.physics.add.collider(player, platforms);
+
+            // NPC Minichurros
+            npc = this.physics.add.sprite(700, 180, 'minichurros');
+            npc.setScale(0.15);
+            npc.body.allowGravity = true;
+            npc.setCollideWorldBounds(true);
+            this.physics.add.collider(npc, platforms);
+            
+            // Adicionar texto acima do NPC
+            const npcText = scene.add.text(npc.x, npc.y - 60, '💬 Minichurros', {
+                fontSize: '18px',
+                fill: '#3498db',
+                fontStyle: 'bold',
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                padding: { x: 10, y: 5 }
+            });
+            npcText.setOrigin(0.5);
+
+            // Inimigos - Muito mais perigosos na Fase 3
+            enemies = this.physics.add.group();
+            const enemyPositions = [
+                { x: 400, y: 460, speed: 200 },
+                { x: 600, y: 380, speed: 220 },
+                { x: 1050, y: 410, speed: 210 },
+                { x: 1250, y: 340, speed: 230 },
+                { x: 300, y: 140, speed: 190 },
+                { x: 1100, y: 140, speed: 200 },
+                { x: 900, y: 620, speed: 240 }
+            ];
+
+            enemyPositions.forEach((pos, i) => {
+                const enemy = enemies.create(pos.x, pos.y, 'enemy-canvas');
+                enemy.setScale(1.3);
+                enemy.setBounce(1);
+                enemy.setCollideWorldBounds(true);
+                enemy.setVelocityX(i % 2 === 0 ? -pos.speed : pos.speed);
+            });
+
+            this.physics.add.collider(enemies, platforms);
+            this.physics.add.collider(player, enemies, hitEnemy, null, this);
+
+            // Xuxu (recuperação de vida)
+            const xuxus = this.physics.add.group();
+            const xuxuPositions = [
+                { x: 200, y: 540 },
+                { x: 600, y: 380 },
+                { x: 1050, y: 410 },
+                { x: 300, y: 140 }
+            ];
+            
+            xuxuPositions.forEach(pos => {
+                const xuxu = xuxus.create(pos.x, pos.y, 'xuxu');
+                xuxu.setScale(0.06);
+                xuxu.body.allowGravity = false;
+                xuxu.body.immovable = true;
+            });
+
+            this.physics.add.overlap(player, xuxus, (player, xuxu) => {
+                xuxu.destroy();
+                lives++;
+                document.getElementById('lives').textContent = lives;
+                
+                const lifeText = scene.add.text(xuxu.x, xuxu.y - 30, '+1 VIDA', {
+                    fontSize: '24px',
+                    fill: '#00ff00',
+                    fontStyle: 'bold'
+                });
+                scene.tweens.add({
+                    targets: lifeText,
+                    y: lifeText.y - 60,
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: () => lifeText.destroy()
+                });
+            }, null, this);
+
+            // Victory Area - No topo
+            victoryArea = this.physics.add.staticImage(1350, 100, 'victory')
+                .setScale(50, 100)
+                .refreshBody();
+
+            this.physics.add.overlap(player, victoryArea, () => {
+                const finalTime = Math.floor((Date.now() - startTime) / 1000);
+                alert(`🎉 INCRÍVEL! Você completou a Fase 3 em ${finalTime} segundos! Você é um verdadeiro herói!`);
+                window.location.href = 'index.html';
+            }, null, this);
+
+            // Detecção de proximidade com NPC
+            this.physics.add.overlap(player, npc, () => {
+                if (!hasMetNPC && !hasShield) {
+                    hasMetNPC = true;
+                    startNPCDialog();
+                }
+            }, null, this);
+
+            // Camera
+            this.cameras.main.setBounds(0, 0, 1400, 700);
+            this.cameras.main.startFollow(player, true, 0.1, 0.1);
+
+            // Controls
+            cursors = this.input.keyboard.createCursorKeys();
+            document.getElementById('lives').textContent = lives;
+            
+            // Timer update
+            setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('timer').textContent = elapsed;
+            }, 1000);
+        }
+
+        function startNPCDialog() {
+            const dialogs = [
+                { speaker: 'Minichurros', text: 'Olá, viajante! Você deve ser muito corajoso para chegar até aqui.' },
+                { speaker: 'Jelani', text: 'Obrigado! Este lugar está cheio de perigos...' },
+                { speaker: 'Minichurros', text: 'Sim, os inimigos estão por toda parte. Mas eu posso ajudá-lo!' },
+                { speaker: 'Minichurros', text: 'Aqui, pegue este ESCUDO MÁGICO! Ele vai protegê-lo do primeiro ataque.' },
+                { speaker: 'Jelani', text: 'Uau! Muito obrigado, Minichurros! Isso vai me ajudar muito!' },
+                { speaker: 'Minichurros', text: 'Use-o com sabedoria! Boa sorte na sua jornada, herói!' }
+            ];
+
+            // Apenas impedir movimento, não mexer na física
+            showDialogSequence(dialogs, () => {
+                giveShield();
+            });
+        }
+
+        function giveShield() {
+            hasShield = true;
+            document.getElementById('shield-indicator').style.display = 'block';
+            
+            // Criar sprite visual do escudo ao redor do player
+            shieldSprite = gameScene.add.sprite(player.x, player.y, 'shield');
+            shieldSprite.setAlpha(0.7);
+            
+            // Animação de pulso do escudo
+            gameScene.tweens.add({
+                targets: shieldSprite,
+                scaleX: 1.2,
+                scaleY: 1.2,
+                alpha: 0.5,
+                duration: 1000,
+                yoyo: true,
+                repeat: -1
+            });
+
+            // Som de confirmação (efeito visual)
+            const shieldText = gameScene.add.text(player.x, player.y - 100, '🛡️ ESCUDO OBTIDO!', {
+                fontSize: '28px',
+                fill: '#3498db',
+                fontStyle: 'bold',
+                stroke: '#fff',
+                strokeThickness: 4
+            });
+            shieldText.setOrigin(0.5);
+            
+            gameScene.tweens.add({
+                targets: shieldText,
+                y: shieldText.y - 80,
+                alpha: 0,
+                duration: 2000,
+                onComplete: () => shieldText.destroy()
+            });
+        }
+
+        function hitEnemy(player, enemy) {
+            if (hasShield) {
+                // Escudo absorve o golpe
+                hasShield = false;
+                document.getElementById('shield-indicator').style.display = 'none';
+                
+                if (shieldSprite) {
+                    // Efeito de quebra do escudo
+                    gameScene.tweens.add({
+                        targets: shieldSprite,
+                        scaleX: 2,
+                        scaleY: 2,
+                        alpha: 0,
+                        duration: 300,
+                        onComplete: () => shieldSprite.destroy()
+                    });
+                }
+                
+                // Feedback visual
+                const shieldBreakText = gameScene.add.text(player.x, player.y - 50, '🛡️ ESCUDO DESTRUÍDO!', {
+                    fontSize: '24px',
+                    fill: '#e74c3c',
+                    fontStyle: 'bold'
+                });
+                shieldBreakText.setOrigin(0.5);
+                
+                gameScene.tweens.add({
+                    targets: shieldBreakText,
+                    y: shieldBreakText.y - 60,
+                    alpha: 0,
+                    duration: 1500,
+                    onComplete: () => shieldBreakText.destroy()
+                });
+                
+                // Empurrar o inimigo
+                enemy.setVelocityX(enemy.body.velocity.x * -1);
+            } else {
+                // Perde vida normal
+                lives--;
+                document.getElementById('lives').textContent = lives;
+
+                if (lives <= 0) {
+                    const finalTime = Math.floor((Date.now() - startTime) / 1000);
+                    alert(`Game Over! Você sobreviveu por ${finalTime} segundos na Fase 3.`);
+                    lives = 3;
+                    gameScene.scene.restart();
+                } else {
+                    player.setPosition(100, 500);
+                    alert(`Você perdeu uma vida! Ainda tem ${lives} vidas.`);
+                }
+            }
+        }
+
+        function update() {
+            // Atualizar posição do escudo se existir
+            if (shieldSprite && player) {
+                shieldSprite.x = player.x;
+                shieldSprite.y = player.y;
+            }
+
+            // Se o diálogo está ativo, não permitir movimento
+            if (isDialogActive) {
+                player.setVelocityX(0);
+                // Manter o player no chão durante diálogo
+                if (player.body.touching.down) {
+                    player.setVelocityY(0);
+                }
+                return;
+            }
+
+            // Controle de agachamento
+            if (cursors.down.isDown && player.body.touching.down) {
+                if (!player.isCrouching) {
+                    player.scaleY = player.crouchScale;
+                    player.isCrouching = true;
+                }
+                player.setVelocityX(0);
+                lastDirection = 'down';
+            } else {
+                if (player.isCrouching) {
+                    player.scaleY = player.originalScale;
+                    player.isCrouching = false;
+                }
+
+                if (cursors.left.isDown) {
+                    player.setVelocityX(-220);
+                    player.setFlipX(true);
+                    lastDirection = 'left';
+                } else if (cursors.right.isDown) {
+                    player.setVelocityX(220);
+                    player.setFlipX(false);
+                    lastDirection = 'right';
+                } else {
+                    player.setVelocityX(0);
+                }
+            }
+
+            if (cursors.up.isDown && player.body.touching.down && !player.isCrouching) {
+                player.setVelocityY(-400);
+                lastDirection = 'up';
+            }
+        }
+    </script>
+</body>
+</html>

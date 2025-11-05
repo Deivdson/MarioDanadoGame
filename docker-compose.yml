@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  jelani-game:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jelani-bros-game
+    image: deivdson/jelani-bros-game:latest
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    volumes:
+      # Montagem opcional para desenvolvimento (descomente para hot-reload)
+      # - ./:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - game-network
+    labels:
+      - "com.jelani-game.description=Jelani Bros - Jogo de Plataforma"
+      - "com.jelani-game.version=1.0"
+
+networks:
+  game-network:
+    driver: bridge
