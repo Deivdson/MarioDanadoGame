@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jelani Bros - Fase 4: Boss Battle</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1a0000;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            width: 100%;
+            height: 100%;
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #ff6b6b;
+            font-size: 20px;
+            z-index: 100;
+            text-shadow: 2px 2px 4px #000;
+        }
+        
+        /* Dialog Box */
+        #dialog-box {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(26, 0, 0, 0.95);
+            border: 4px solid #ff6b6b;
+            border-radius: 15px;
+            padding: 25px 30px;
+            max-width: 700px;
+            width: 85%;
+            z-index: 200;
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.5);
+        }
+        
+        #dialog-content {
+            color: #fff;
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        #dialog-speaker {
+            color: #ff6b6b;
+            font-weight: bold;
+            font-size: 22px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px #000;
+        }
+        
+        #dialog-continue {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            float: right;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+        
+        #dialog-continue:hover {
+            background: #ff5252;
+            transform: scale(1.05);
+        }
+
+        /* Transformation Video Overlay */
+        #transformation-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 300;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #transformation-video {
+            max-width: 90%;
+            max-height: 90%;
+            border: 4px solid #ff6b6b;
+            border-radius: 10px;
+            box-shadow: 0 0 50px rgba(255, 107, 107, 0.7);
+        }
+
+        /* Boss Health Bar */
+        #boss-health-container {
+            display: none;
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            z-index: 100;
+        }
+
+        #boss-name {
+            color: #ff6b6b;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 3px 3px 6px #000;
+        }
+
+        #boss-health-bar {
+            width: 100%;
+            height: 30px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 3px solid #ff6b6b;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        #boss-health-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ff6b6b);
+            transition: width 0.3s ease;
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        #boss-health-text {
+            position: absolute;
+            top: 95px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        /* Victory/Defeat Messages */
+        .game-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 5px solid #ff6b6b;
+            border-radius: 20px;
+            padding: 40px 60px;
+            z-index: 250;
+            text-align: center;
+        }
+
+        .game-message h1 {
+            color: #ff6b6b;
+            font-size: 48px;
+            margin: 0 0 20px 0;
+            text-shadow: 3px 3px 6px #000;
+        }
+
+        .game-message p {
+            color: white;
+            font-size: 24px;
+            margin: 10px 0;
+        }
+
+        .game-message button {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+
+        .game-message button:hover {
+            background: #ff5252;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div id="ui">
+        <div>FASE 4 - BATALHA FINAL: PAULO SUPLA</div>
+        <div>Vidas: <span id="lives">5</span></div>
+        <div>Tempo: <span id="timer">0</span>s</div>
+    </div>
+
+    <!-- Boss Health Bar -->
+    <div id="boss-health-container">
+        <div id="boss-name">🎸 PAULO SUPLA - O CHEFE FINAL 🎸</div>
+        <div id="boss-health-bar">
+            <div id="boss-health-fill"></div>
+        </div>
+        <div id="boss-health-text">HP: <span id="boss-hp-current">100</span> / 100</div>
+    </div>
+
+    <button style="position: absolute; top: 10px; right: 140px; background-color: #667eea; color: #fff; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; z-index: 100;" onclick="window.location.href='index.html'">🏠 Menu</button>
+    <button style="position: absolute; top: 10px; right: 10px; background-color: #3498db; color: #fff; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; z-index: 100;" onclick="window.location.href='jelani_bros_fase3.html'">← Fase 3</button>
+
+    <!-- Dialog Box -->
+    <div id="dialog-box">
+        <div id="dialog-speaker"></div>
+        <div id="dialog-content"></div>
+        <button id="dialog-continue">Continuar ➜</button>
+    </div>
+
+    <!-- Transformation Video Overlay -->
+    <div id="transformation-overlay">
+        <video id="transformation-video" autoplay>
+            <source src="assets/paulo_supla/paulo_supla_transformation.mp4" type="video/mp4">
+        </video>
+        <div style="position: absolute; bottom: 50px; color: white; font-size: 20px; text-shadow: 2px 2px 4px #000; animation: blink 1.5s infinite;">
+            Clique para pular ⏭️
+        </div>
+        <button id="skip-video-btn" style="position: absolute; bottom: 100px; background: #ff6b6b; color: white; border: none; padding: 15px 30px; border-radius: 10px; cursor: pointer; font-size: 18px; font-weight: bold;">
+            PULAR VÍDEO
+        </button>
+    </div>
+
+    <script>
+        // Sistema de diálogo
+        let currentDialogIndex = 0;
+        let dialogSequence = [];
+        let dialogCallback = null;
+        let finalDialogCallback = null; // Separate variable for final callback
+        let isDialogActive = false;
+
+        function showDialog(speaker, text, callback) {
+            const dialogBox = document.getElementById('dialog-box');
+            const dialogSpeaker = document.getElementById('dialog-speaker');
+            const dialogContent = document.getElementById('dialog-content');
+            
+            isDialogActive = true;
+            dialogBox.style.display = 'block';
+            dialogSpeaker.textContent = speaker + ':';
+            dialogContent.textContent = text;
+            
+            dialogCallback = callback;
+        }
+
+        function hideDialog() {
+            document.getElementById('dialog-box').style.display = 'none';
+            isDialogActive = false;
+            console.log('Dialog hidden, isDialogActive:', isDialogActive);
+        }
+
+        function showDialogSequence(dialogs, finalCallback) {
+            console.log('showDialogSequence called with callback:', typeof finalCallback);
+            dialogSequence = dialogs;
+            currentDialogIndex = 0;
+            
+            // Store the final callback in a separate variable
+            finalDialogCallback = finalCallback;
+            console.log('finalDialogCallback set to:', typeof finalDialogCallback);
+            
+            showNextDialog();
+        }
+
+        function showNextDialog() {
+            console.log('showNextDialog called, index:', currentDialogIndex, 'total:', dialogSequence.length);
+            
+            if (currentDialogIndex < dialogSequence.length) {
+                const dialog = dialogSequence[currentDialogIndex];
+                showDialog(dialog.speaker, dialog.text, null);
+            } else {
+                // All dialogs shown, execute final callback
+                console.log('All dialogs finished, executing final callback');
+                console.log('finalDialogCallback is:', typeof finalDialogCallback, finalDialogCallback);
+                hideDialog();
+                if (finalDialogCallback) {
+                    console.log('Executing final callback after all dialogs');
+                    const callback = finalDialogCallback;
+                    finalDialogCallback = null; // Clear it
+                    callback();
+                } else {
+                    console.error('ERROR: finalDialogCallback is null or undefined!');
+                }
+            }
+        }
+
+        document.getElementById('dialog-continue').addEventListener('click', () => {
+            console.log('Continue clicked, current index:', currentDialogIndex);
+            currentDialogIndex++;
+            showNextDialog();
+        });
+
+        // Transformation Video System
+        function playTransformationVideo(callback) {
+            console.log('playTransformationVideo called');
+            const overlay = document.getElementById('transformation-overlay');
+            const video = document.getElementById('transformation-video');
+            const skipBtn = document.getElementById('skip-video-btn');
+            
+            overlay.style.display = 'flex';
+            video.currentTime = 0;
+            
+            let videoEnded = false;
+            
+            const endVideo = () => {
+                if (videoEnded) return; // Prevent multiple calls
+                videoEnded = true;
+                console.log('Video ending, transforming boss');
+                overlay.style.display = 'none';
+                video.pause();
+                if (callback) callback();
+            };
+            
+            // Try to play the video
+            const playPromise = video.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    console.log('Video playing successfully');
+                }).catch(error => {
+                    console.error('Video play error:', error);
+                    // If video fails, skip to callback immediately
+                    endVideo();
+                });
+            }
+
+            // Fallback: If video doesn't play or takes too long, skip after 5 seconds
+            const fallbackTimeout = setTimeout(() => {
+                console.log('Video timeout - skipping to battle');
+                endVideo();
+            }, 2000); // Reduced to 2 seconds for testing
+
+            video.onended = () => {
+                console.log('Video ended normally');
+                clearTimeout(fallbackTimeout);
+                endVideo();
+            };
+
+            // Skip button click
+            skipBtn.onclick = (e) => {
+                e.stopPropagation();
+                console.log('Video skipped by button');
+                clearTimeout(fallbackTimeout);
+                endVideo();
+            };
+
+            // Allow clicking overlay to skip video
+            overlay.onclick = () => {
+                console.log('Video skipped by click');
+                clearTimeout(fallbackTimeout);
+                endVideo();
+            };
+        }
+
+        const config = {
+            type: Phaser.AUTO,
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                width: 1600,
+                height: 800
+            },
+            parent: 'game-container',
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 500 },
+                    debug: false
+                }
+            },
+            scene: {
+                init: init,
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        const game = new Phaser.Game(config);
+
+        let player, platforms, boss, cursors, playerProjectiles, bossProjectiles;
+        let lives = 5;
+        let bossHealth = 100;
+        let lastDirection = 'down';
+        let startTime;
+        let gameScene;
+        let bossActive = false;
+        let attackCooldown = 0;
+        let bossAttackCooldown = 0;
+        let playerAttackKey;
+        let hasMetBoss = false;
+        let bossPhase = 1;
+        let bossInvulnerable = false;
+        let bossCurrentSprite = 'idle';
+        let bossSpriteTimer = 0;
+
+        function init() {
+            this.registry.set('lives', lives);
+        }
+
+        function preload() {
+            this.load.image('jelani', 'assets/jelani.png');
+            this.load.image('paulo_supla', 'assets/paulo_supla/paulo_supla.png');
+            this.load.image('paulo_supla_conversation', 'assets/paulo_supla/paulo_supla_conversation.png');
+            this.load.image('paulo_supla_bits', 'assets/paulo_supla/paulo_supla_bits.png');
+            this.load.image('paulo_supla_walk', 'assets/paulo_supla/movies/paulo_supla_walk.png');
+            this.load.image('paulo_supla_jump', 'assets/paulo_supla/movies/paulo_supla_jump.png');
+            this.load.image('paulo_supla_punch', 'assets/paulo_supla/movies/paulo_supla_bits_punch.png');
+        }
+
+        function create() {
+            const scene = this;
+            gameScene = scene;
+            startTime = Date.now();
+            
+            // Background color
+            scene.cameras.main.setBackgroundColor('#1a0000');
+
+            // Ground texture
+            const graphics = this.make.graphics({ fillStyle: { color: 0x4a0000 } });
+            graphics.fillRect(0, 0, 1, 1);
+            graphics.generateTexture('ground', 1, 1);
+            graphics.destroy();
+
+            // Projectile texture
+            const projGraphics = this.make.graphics({ fillStyle: { color: 0xffff00 } });
+            projGraphics.fillRect(0, 0, 1, 1);
+            projGraphics.generateTexture('projectile', 1, 1);
+            projGraphics.destroy();
+
+            // Boss projectile texture
+            const bossProjectile = this.make.graphics({ fillStyle: { color: 0xff0000 } });
+            bossProjectile.fillRect(0, 0, 1, 1);
+            bossProjectile.generateTexture('boss-projectile', 1, 1);
+            bossProjectile.destroy();
+            
+            this.physics.world.setBounds(0, 0, 1600, 800);
+
+            // Platforms - Boss Arena
+            platforms = this.physics.add.staticGroup();
+            platforms.create(800, 780, 'ground').setScale(1600, 20).refreshBody();
+            
+            // Side platforms
+            platforms.create(200, 650, 'ground').setScale(300, 15).refreshBody();
+            platforms.create(1400, 650, 'ground').setScale(300, 15).refreshBody();
+            
+            // Center platform
+            platforms.create(800, 500, 'ground').setScale(400, 15).refreshBody();
+
+            // Player
+            player = this.physics.add.sprite(100, 600, 'jelani');
+            player.setScale(0.15);
+            player.setBounce(0.2);
+            player.setCollideWorldBounds(true);
+            player.originalScale = 0.15;
+            this.physics.add.collider(player, platforms);
+
+            // Boss - Paulo Supla (conversation form)
+            boss = this.physics.add.sprite(1200, 600, 'paulo_supla_conversation');
+            boss.setScale(0.3);
+            boss.setCollideWorldBounds(true);
+            boss.body.allowGravity = true;
+            boss.setImmovable(false);
+            this.physics.add.collider(boss, platforms);
+            
+            // Boss name indicator
+            const bossText = scene.add.text(boss.x, boss.y - 120, '🎸 Paulo Supla', {
+                fontSize: '24px',
+                fill: '#ff6b6b',
+                fontStyle: 'bold',
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: { x: 15, y: 8 }
+            });
+            bossText.setOrigin(0.5);
+
+            // Separate projectile groups for player and boss
+            playerProjectiles = this.physics.add.group();
+            bossProjectiles = this.physics.add.group();
+
+            // Controls
+            cursors = this.input.keyboard.createCursorKeys();
+            playerAttackKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+            
+            // Camera
+            this.cameras.main.setBounds(0, 0, 1600, 800);
+            this.cameras.main.startFollow(player, true, 0.1, 0.1);
+
+            document.getElementById('lives').textContent = lives;
+            
+            // Timer update
+            setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('timer').textContent = elapsed;
+            }, 1000);
+
+            // Start boss encounter after a short delay
+            this.time.delayedCall(1000, () => {
+                if (!hasMetBoss) {
+                    hasMetBoss = true;
+                    startBossEncounter();
+                }
+            });
+        }
+
+        function startBossEncounter() {
+            // Freeze player
+            player.setVelocity(0, 0);
+            
+            console.log('Boss encounter started');
+            
+            const dialogs = [
+                { speaker: 'Paulo Supla', text: 'Então você é o tal herói que derrotou todos os meus servos...' },
+                { speaker: 'Jelani', text: 'Paulo Supla! Eu vim acabar com seus planos malignos!' },
+                { speaker: 'Paulo Supla', text: 'Hahahaha! Você é corajoso, pequeno Jelani. Mas será que tem força suficiente?' },
+                { speaker: 'Jelani', text: 'Só há uma maneira de descobrir!' },
+                { speaker: 'Paulo Supla', text: 'Muito bem! Mas antes... deixe-me mostrar meu VERDADEIRO PODER!' },
+                { speaker: 'Paulo Supla', text: 'PREPARE-SE PARA ENFRENTAR... PAULO SUPLA SUPREMO!' }
+            ];
+
+            showDialogSequence(dialogs, () => {
+                console.log('Dialog finished, playing transformation video');
+                
+                // TEMPORARY: Skip video for testing - remove this later
+                // playTransformationVideo(() => {
+                //     console.log('Transformation video ended, transforming boss');
+                //     transformBoss();
+                // });
+                
+                // Direct transformation for testing
+                setTimeout(() => {
+                    console.log('Skipping video, transforming boss directly');
+                    transformBoss();
+                }, 500);
+            });
+        }
+
+        function transformBoss() {
+            console.log('Transform boss function called');
+            console.log('Boss active before:', bossActive);
+            
+            // Change boss sprite to transformed version
+            boss.setTexture('paulo_supla_bits');
+            boss.setScale(0.4);
+            bossCurrentSprite = 'idle';
+            
+            // Show boss health bar
+            document.getElementById('boss-health-container').style.display = 'block';
+            
+            // Flash effect
+            gameScene.cameras.main.flash(1000, 255, 0, 0);
+            
+            // Shake camera
+            gameScene.cameras.main.shake(500, 0.01);
+            
+            // Activation message
+            const activationText = gameScene.add.text(800, 400, '⚡ A BATALHA COMEÇA! ⚡', {
+                fontSize: '48px',
+                fill: '#ff0000',
+                fontStyle: 'bold',
+                stroke: '#fff',
+                strokeThickness: 6
+            });
+            activationText.setOrigin(0.5);
+            
+            gameScene.tweens.add({
+                targets: activationText,
+                scaleX: 1.5,
+                scaleY: 1.5,
+                alpha: 0,
+                duration: 2000,
+                onComplete: () => {
+                    activationText.destroy();
+                    bossActive = true;
+                    console.log('Boss active after tween:', bossActive);
+                }
+            });
+        }
+
+        function playerShoot() {
+            if (attackCooldown > 0) return;
+            
+            attackCooldown = 30; // Cooldown frames
+            
+            const projectile = playerProjectiles.create(player.x, player.y, 'projectile');
+            projectile.setScale(15, 8);
+            projectile.body.allowGravity = false;
+            
+            // Shoot in the direction player is facing
+            if (player.flipX) {
+                projectile.setVelocityX(-600);
+            } else {
+                projectile.setVelocityX(600);
+            }
+            
+            // Destroy projectile after 2 seconds
+            gameScene.time.delayedCall(2000, () => {
+                if (projectile && projectile.active) {
+                    projectile.destroy();
+                }
+            });
+        }
+
+        function bossShoot() {
+            if (!bossActive || bossInvulnerable) return;
+            
+            // Change to punch sprite during attack
+            boss.setTexture('paulo_supla_punch');
+            bossCurrentSprite = 'punch';
+            bossSpriteTimer = 20; // Frames to show punch sprite
+            
+            // Boss shoots 3 projectiles in a spread pattern
+            const angles = [-20, 0, 20];
+            
+            angles.forEach(angle => {
+                const projectile = bossProjectiles.create(boss.x, boss.y, 'boss-projectile');
+                
+                projectile.setScale(20, 20);
+                projectile.body.allowGravity = false;
+                
+                // Calculate direction towards player with angle offset
+                const angleRad = Phaser.Math.DegToRad(angle);
+                const dx = player.x - boss.x;
+                const dy = player.y - boss.y;
+                const targetAngle = Math.atan2(dy, dx) + angleRad;
+                
+                projectile.setVelocity(
+                    Math.cos(targetAngle) * 400,
+                    Math.sin(targetAngle) * 400
+                );
+                
+                // Destroy projectile after 3 seconds
+                gameScene.time.delayedCall(3000, () => {
+                    if (projectile && projectile.active) {
+                        projectile.destroy();
+                    }
+                });
+            });
+        }
+
+        function hitBoss(projectile, bossSprite) {
+            if (!bossActive || bossInvulnerable) {
+                return false;
+            }
+            
+            console.log('=== HIT BOSS START ===');
+            console.log('Projectile param:', projectile ? projectile.texture.key : 'null');
+            console.log('BossSprite param:', bossSprite ? bossSprite.texture.key : 'null');
+            console.log('Boss global:', boss ? boss.texture.key : 'null');
+            console.log('projectile === boss?', projectile === boss);
+            console.log('bossSprite === boss?', bossSprite === boss);
+            console.log('Boss before hit - x:', boss.x, 'y:', boss.y, 'active:', boss.active, 'visible:', boss.visible, 'alpha:', boss.alpha, 'scale:', boss.scaleX);
+            
+            // CRITICAL FIX: Make sure we're destroying the projectile, not the boss!
+            if (projectile && projectile !== boss) {
+                projectile.destroy();
+                console.log('Projectile destroyed');
+            } else {
+                console.error('CRITICAL: projectile is boss! Not destroying!');
+            }
+            
+            console.log('After destroy - Boss active:', boss.active, 'visible:', boss.visible);
+            
+            // Damage boss
+            bossHealth -= 5;
+            updateBossHealth();
+            
+            console.log('After damage - Health:', bossHealth);
+            console.log('Boss state - x:', boss.x, 'y:', boss.y, 'active:', boss.active, 'visible:', boss.visible, 'alpha:', boss.alpha);
+            
+            // Flash boss red - USE GLOBAL boss VARIABLE
+            boss.setTint(0xff0000);
+            console.log('After setTint - active:', boss.active, 'visible:', boss.visible);
+            
+            gameScene.time.delayedCall(200, () => {
+                if (boss && boss.active) {
+                    boss.clearTint();
+                    console.log('Tint cleared - boss still active:', boss.active, 'visible:', boss.visible);
+                } else {
+                    console.error('CRITICAL: Boss not active when clearing tint!');
+                }
+            });
+            
+            // Damage number
+            const damageText = gameScene.add.text(boss.x, boss.y - 100, '-5', {
+                fontSize: '32px',
+                fill: '#ffff00',
+                fontStyle: 'bold',
+                stroke: '#000',
+                strokeThickness: 4
+            });
+            damageText.setOrigin(0.5);
+            
+            gameScene.tweens.add({
+                targets: damageText,
+                y: damageText.y - 60,
+                alpha: 0,
+                duration: 800,
+                onComplete: () => damageText.destroy()
+            });
+            
+            console.log('After damage text - boss active:', boss.active, 'visible:', boss.visible);
+            
+            // Check for phase transitions
+            if (bossHealth <= 50 && bossPhase === 1) {
+                console.log('Boss entering phase 2!');
+                bossPhase = 2;
+                bossEnrage();
+            }
+            
+            // Check for victory
+            if (bossHealth <= 0) {
+                console.log('Boss defeated!');
+                bossDefeated();
+            }
+            
+            console.log('=== HIT BOSS END - Boss active:', boss.active, 'visible:', boss.visible, '===');
+            
+            return true;
+        }
+
+        function bossEnrage() {
+            bossInvulnerable = true;
+            
+            const enrageText = gameScene.add.text(800, 300, '🔥 PAULO SUPLA ESTÁ ENFURECIDO! 🔥', {
+                fontSize: '36px',
+                fill: '#ff0000',
+                fontStyle: 'bold',
+                stroke: '#fff',
+                strokeThickness: 4
+            });
+            enrageText.setOrigin(0.5);
+            
+            gameScene.tweens.add({
+                targets: enrageText,
+                alpha: 0,
+                duration: 2000,
+                onComplete: () => {
+                    enrageText.destroy();
+                    bossInvulnerable = false;
+                }
+            });
+            
+            // Boss moves faster and attacks more frequently
+            boss.setTint(0xff6666);
+        }
+
+        function hitPlayer(player, projectile) {
+            console.log('Player hit by boss projectile!');
+            projectile.destroy();
+            
+            lives--;
+            document.getElementById('lives').textContent = lives;
+            
+            // Flash screen
+            gameScene.cameras.main.flash(300, 255, 0, 0);
+            
+            if (lives <= 0) {
+                gameOver();
+            } else {
+                // Temporary invulnerability
+                player.setAlpha(0.5);
+                const tempInvuln = gameScene.time.addEvent({
+                    delay: 100,
+                    callback: () => {
+                        player.setAlpha(player.alpha === 0.5 ? 1 : 0.5);
+                    },
+                    repeat: 10,
+                    callbackScope: gameScene
+                });
+                
+                gameScene.time.delayedCall(1200, () => {
+                    tempInvuln.remove();
+                    player.setAlpha(1);
+                });
+            }
+            
+            return true;
+        }
+
+        function updateBossHealth() {
+            const percentage = Math.max(0, (bossHealth / 100) * 100);
+            document.getElementById('boss-health-fill').style.width = percentage + '%';
+            document.getElementById('boss-hp-current').textContent = Math.max(0, bossHealth);
+        }
+
+        function bossDefeated() {
+            bossActive = false;
+            
+            // Boss death animation
+            gameScene.tweens.add({
+                targets: boss,
+                alpha: 0,
+                angle: 360,
+                scaleX: 0,
+                scaleY: 0,
+                duration: 2000,
+                onComplete: () => {
+                    boss.destroy();
+                    showVictory();
+                }
+            });
+            
+            // Explosion effect
+            for (let i = 0; i < 20; i++) {
+                gameScene.time.delayedCall(i * 100, () => {
+                    const explosion = gameScene.add.circle(
+                        boss.x + Phaser.Math.Between(-100, 100),
+                        boss.y + Phaser.Math.Between(-100, 100),
+                        Phaser.Math.Between(10, 30),
+                        0xff6b00
+                    );
+                    
+                    gameScene.tweens.add({
+                        targets: explosion,
+                        scaleX: 3,
+                        scaleY: 3,
+                        alpha: 0,
+                        duration: 1000,
+                        onComplete: () => explosion.destroy()
+                    });
+                });
+            }
+        }
+
+        function showVictory() {
+            const finalTime = Math.floor((Date.now() - startTime) / 1000);
+            
+            const victoryDiv = document.createElement('div');
+            victoryDiv.className = 'game-message';
+            victoryDiv.innerHTML = `
+                <h1>🎉 VITÓRIA! 🎉</h1>
+                <p>Você derrotou Paulo Supla!</p>
+                <p>Tempo: ${finalTime} segundos</p>
+                <p>Vidas restantes: ${lives}</p>
+                <button onclick="window.location.href='index.html'">Menu Principal</button>
+                <button onclick="location.reload()">Jogar Novamente</button>
+            `;
+            document.body.appendChild(victoryDiv);
+        }
+
+        function gameOver() {
+            bossActive = false;
+            const finalTime = Math.floor((Date.now() - startTime) / 1000);
+            
+            const gameOverDiv = document.createElement('div');
+            gameOverDiv.className = 'game-message';
+            gameOverDiv.innerHTML = `
+                <h1>💀 GAME OVER 💀</h1>
+                <p>Paulo Supla venceu desta vez...</p>
+                <p>Você sobreviveu por ${finalTime} segundos</p>
+                <button onclick="window.location.href='index.html'">Menu Principal</button>
+                <button onclick="location.reload()">Tentar Novamente</button>
+            `;
+            document.body.appendChild(gameOverDiv);
+        }
+
+        function update() {
+            // Cooldown management
+            if (attackCooldown > 0) {
+                attackCooldown--;
+            }
+            
+            if (bossAttackCooldown > 0) {
+                bossAttackCooldown--;
+            }
+
+            // Block movement during dialog
+            if (isDialogActive) {
+                player.setVelocityX(0);
+                if (player.body.touching.down) {
+                    player.setVelocityY(0);
+                }
+                // Don't return - let boss AI continue
+            } else {
+                // Player controls - only when dialog is not active
+                if (cursors.left.isDown) {
+                    player.setVelocityX(-300);
+                    player.setFlipX(true);
+                    lastDirection = 'left';
+                } else if (cursors.right.isDown) {
+                    player.setVelocityX(300);
+                    player.setFlipX(false);
+                    lastDirection = 'right';
+                } else {
+                    player.setVelocityX(0);
+                }
+
+                if (cursors.up.isDown && player.body.touching.down) {
+                    player.setVelocityY(-450);
+                    lastDirection = 'up';
+                }
+
+                // Player attack
+                if (Phaser.Input.Keyboard.JustDown(playerAttackKey)) {
+                    playerShoot();
+                }
+            }
+
+            // Update boss sprite animations
+            if (bossActive && boss && boss.active) {
+                // Log every second after taking damage
+                if (bossHealth < 100 && gameScene.game.getFrame() % 60 === 0) {
+                    console.log('UPDATE LOOP - Boss still in update. Health:', bossHealth, 'Pos:', Math.floor(boss.x), Math.floor(boss.y), 
+                                'Active:', boss.active, 'Visible:', boss.visible, 'Alpha:', boss.alpha, 'Texture:', boss.texture.key);
+                }
+                
+                // Safety check for boss.body
+                if (!boss.body) {
+                    console.error('Boss body is null!');
+                    return;
+                }
+                
+                // Handle sprite timer for attacks
+                if (bossSpriteTimer > 0) {
+                    bossSpriteTimer--;
+                    if (bossSpriteTimer === 0) {
+                        // Return to idle or appropriate sprite
+                        if (Math.abs(boss.body.velocity.x) > 10) {
+                            boss.setTexture('paulo_supla_walk');
+                            bossCurrentSprite = 'walk';
+                        } else {
+                            boss.setTexture('paulo_supla_bits');
+                            bossCurrentSprite = 'idle';
+                        }
+                    }
+                }
+                
+                // Boss movement
+                const distanceToPlayer = Phaser.Math.Distance.Between(boss.x, boss.y, player.x, player.y);
+                
+                if (distanceToPlayer > 400) {
+                    // Move towards player
+                    if (boss.x < player.x) {
+                        boss.setVelocityX(bossPhase === 2 ? 200 : 150);
+                        boss.setFlipX(false);
+                    } else {
+                        boss.setVelocityX(bossPhase === 2 ? -200 : -150);
+                        boss.setFlipX(true);
+                    }
+                    
+                    // Set walk sprite if not attacking
+                    if (bossSpriteTimer === 0 && bossCurrentSprite !== 'walk') {
+                        boss.setTexture('paulo_supla_walk');
+                        bossCurrentSprite = 'walk';
+                    }
+                } else if (distanceToPlayer < 300) {
+                    // Move away from player
+                    if (boss.x < player.x) {
+                        boss.setVelocityX(bossPhase === 2 ? -200 : -150);
+                        boss.setFlipX(true);
+                    } else {
+                        boss.setVelocityX(bossPhase === 2 ? 200 : 150);
+                        boss.setFlipX(false);
+                    }
+                    
+                    // Set walk sprite if not attacking
+                    if (bossSpriteTimer === 0 && bossCurrentSprite !== 'walk') {
+                        boss.setTexture('paulo_supla_walk');
+                        bossCurrentSprite = 'walk';
+                    }
+                } else {
+                    boss.setVelocityX(0);
+                    
+                    // Set idle sprite if not attacking
+                    if (bossSpriteTimer === 0 && bossCurrentSprite !== 'idle') {
+                        boss.setTexture('paulo_supla_bits');
+                        bossCurrentSprite = 'idle';
+                    }
+                }
+
+                // Boss jump occasionally
+                if (boss.body.touching.down && Phaser.Math.Between(0, 100) < 3) {
+                    boss.setVelocityY(-400);
+                    
+                    // Set jump sprite
+                    if (bossSpriteTimer === 0) {
+                        boss.setTexture('paulo_supla_jump');
+                        bossCurrentSprite = 'jump';
+                        bossSpriteTimer = 30; // Show jump sprite for 30 frames
+                    }
+                }
+                
+                // Return to idle/walk when landing
+                if (boss.body.touching.down && bossCurrentSprite === 'jump' && bossSpriteTimer === 0) {
+                    if (boss.body.velocity.x !== 0) {
+                        boss.setTexture('paulo_supla_walk');
+                        bossCurrentSprite = 'walk';
+                    } else {
+                        boss.setTexture('paulo_supla_bits');
+                        bossCurrentSprite = 'idle';
+                    }
+                }
+
+                // Boss attack
+                const attackRate = bossPhase === 2 ? 80 : 120;
+                if (bossAttackCooldown === 0) {
+                    bossShoot();
+                    bossAttackCooldown = attackRate;
+                } else {
+                    bossAttackCooldown--;
+                }
+            } else {
+                // Boss is NOT being updated!
+                if (bossActive && gameScene.game.getFrame() % 60 === 0) {
+                    console.error('CRITICAL: bossActive is true but boss not in update loop!');
+                    console.error('boss exists?', !!boss, 'boss.active?', boss ? boss.active : 'null');
+                }
+            }
+
+            // Projectile collisions using separate groups
+            // Player projectiles hit boss
+            gameScene.physics.overlap(playerProjectiles, boss, hitBoss, null, gameScene);
+            
+            // Boss projectiles hit player
+            gameScene.physics.overlap(bossProjectiles, player, hitPlayer, null, gameScene);
+        }
+    </script>
+</body>
+</html>
