@@ -342,7 +342,7 @@
             const fallbackTimeout = setTimeout(() => {
                 console.log('Video timeout - skipping to battle');
                 endVideo();
-            }, 2000); // Reduced to 2 seconds for testing
+            }, 4000); // Reduced to 2 seconds for testing
 
             video.onended = () => {
                 console.log('Video ended normally');
@@ -420,6 +420,10 @@
             this.load.image('paulo_supla_walk', 'assets/paulo_supla/movies/paulo_supla_walk.png');
             this.load.image('paulo_supla_jump', 'assets/paulo_supla/movies/paulo_supla_jump.png');
             this.load.image('paulo_supla_punch', 'assets/paulo_supla/movies/paulo_supla_bits_punch.png');
+            
+            // Final form sprites
+            this.load.image('paulo_supla_final_form', 'assets/paulo_supla/final_form/paulo_supla_bits_guitar.png');
+            this.load.image('paulo_supla_final_attack', 'assets/paulo_supla/final_form/paulo_supla_bits_guitar_atack.png');
         }
 
         function create() {
@@ -533,25 +537,14 @@
 
             showDialogSequence(dialogs, () => {
                 console.log('Dialog finished, playing transformation video');
-                
-                // TEMPORARY: Skip video for testing - remove this later
-                // playTransformationVideo(() => {
-                //     console.log('Transformation video ended, transforming boss');
-                //     transformBoss();
-                // });
-                
-                // Direct transformation for testing
-                setTimeout(() => {
-                    console.log('Skipping video, transforming boss directly');
+                playTransformationVideo(() => {
+                    console.log('Transformation video ended, transforming boss');
                     transformBoss();
-                }, 500);
+                });
             });
         }
 
         function transformBoss() {
-            console.log('Transform boss function called');
-            console.log('Boss active before:', bossActive);
-            
             // Change boss sprite to transformed version
             boss.setTexture('paulo_supla_bits');
             boss.setScale(0.4);
@@ -585,7 +578,6 @@
                 onComplete: () => {
                     activationText.destroy();
                     bossActive = true;
-                    console.log('Boss active after tween:', bossActive);
                 }
             });
         }
@@ -617,13 +609,18 @@
         function bossShoot() {
             if (!bossActive || bossInvulnerable) return;
             
-            // Change to punch sprite during attack
-            boss.setTexture('paulo_supla_punch');
-            bossCurrentSprite = 'punch';
-            bossSpriteTimer = 20; // Frames to show punch sprite
+            // Change to attack sprite based on phase
+            if (bossPhase === 2) {
+                boss.setTexture('paulo_supla_final_attack');
+                bossCurrentSprite = 'final_attack';
+            } else {
+                boss.setTexture('paulo_supla_punch');
+                bossCurrentSprite = 'punch';
+            }
+            bossSpriteTimer = 20; // Frames to show attack sprite
             
-            // Boss shoots 3 projectiles in a spread pattern
-            const angles = [-20, 0, 20];
+            // Boss shoots 3 projectiles in a spread pattern (5 in phase 2)
+            const angles = bossPhase === 2 ? [-30, -15, 0, 15, 30] : [-20, 0, 20];
             
             angles.forEach(angle => {
                 const projectile = bossProjectiles.create(boss.x, boss.y, 'boss-projectile');
@@ -656,46 +653,29 @@
                 return false;
             }
             
-            console.log('=== HIT BOSS START ===');
-            console.log('Projectile param:', projectile ? projectile.texture.key : 'null');
-            console.log('BossSprite param:', bossSprite ? bossSprite.texture.key : 'null');
-            console.log('Boss global:', boss ? boss.texture.key : 'null');
-            console.log('projectile === boss?', projectile === boss);
-            console.log('bossSprite === boss?', bossSprite === boss);
-            console.log('Boss before hit - x:', boss.x, 'y:', boss.y, 'active:', boss.active, 'visible:', boss.visible, 'alpha:', boss.alpha, 'scale:', boss.scaleX);
-            
-            // CRITICAL FIX: Make sure we're destroying the projectile, not the boss!
+            // CRITICAL FIX: Only destroy if projectile is NOT the boss
+            // (Phaser sometimes passes parameters in wrong order)
             if (projectile && projectile !== boss) {
                 projectile.destroy();
-                console.log('Projectile destroyed');
-            } else {
-                console.error('CRITICAL: projectile is boss! Not destroying!');
+            } else if (bossSprite && bossSprite !== boss) {
+                // If first param is boss, second param might be the projectile
+                bossSprite.destroy();
             }
             
-            console.log('After destroy - Boss active:', boss.active, 'visible:', boss.visible);
-            
-            // Damage boss
-            bossHealth -= 5;
+            // Damage boss (always use global boss variable)
+            bossHealth -= 10;
             updateBossHealth();
-            
-            console.log('After damage - Health:', bossHealth);
-            console.log('Boss state - x:', boss.x, 'y:', boss.y, 'active:', boss.active, 'visible:', boss.visible, 'alpha:', boss.alpha);
             
             // Flash boss red - USE GLOBAL boss VARIABLE
             boss.setTint(0xff0000);
-            console.log('After setTint - active:', boss.active, 'visible:', boss.visible);
-            
             gameScene.time.delayedCall(200, () => {
                 if (boss && boss.active) {
                     boss.clearTint();
-                    console.log('Tint cleared - boss still active:', boss.active, 'visible:', boss.visible);
-                } else {
-                    console.error('CRITICAL: Boss not active when clearing tint!');
                 }
             });
             
             // Damage number
-            const damageText = gameScene.add.text(boss.x, boss.y - 100, '-5', {
+            const damageText = gameScene.add.text(boss.x, boss.y - 100, '-10', {
                 fontSize: '32px',
                 fill: '#ffff00',
                 fontStyle: 'bold',
@@ -712,22 +692,16 @@
                 onComplete: () => damageText.destroy()
             });
             
-            console.log('After damage text - boss active:', boss.active, 'visible:', boss.visible);
-            
             // Check for phase transitions
             if (bossHealth <= 50 && bossPhase === 1) {
-                console.log('Boss entering phase 2!');
                 bossPhase = 2;
                 bossEnrage();
             }
             
             // Check for victory
             if (bossHealth <= 0) {
-                console.log('Boss defeated!');
                 bossDefeated();
             }
-            
-            console.log('=== HIT BOSS END - Boss active:', boss.active, 'visible:', boss.visible, '===');
             
             return true;
         }
@@ -735,27 +709,66 @@
         function bossEnrage() {
             bossInvulnerable = true;
             
-            const enrageText = gameScene.add.text(800, 300, '🔥 PAULO SUPLA ESTÁ ENFURECIDO! 🔥', {
-                fontSize: '36px',
-                fill: '#ff0000',
+            // Camera effects
+            gameScene.cameras.main.flash(1000, 255, 100, 0);
+            gameScene.cameras.main.shake(800, 0.015);
+            
+            // Transformation text
+            const enrageText = gameScene.add.text(800, 300, '⚡ FORMA FINAL! ⚡', {
+                fontSize: '48px',
+                fill: '#ffff00',
                 fontStyle: 'bold',
-                stroke: '#fff',
-                strokeThickness: 4
+                stroke: '#ff0000',
+                strokeThickness: 6
             });
             enrageText.setOrigin(0.5);
             
+            // Scale up animation for text
             gameScene.tweens.add({
                 targets: enrageText,
+                scaleX: 1.5,
+                scaleY: 1.5,
                 alpha: 0,
-                duration: 2000,
+                duration: 2500,
+                ease: 'Power2',
                 onComplete: () => {
                     enrageText.destroy();
-                    bossInvulnerable = false;
                 }
             });
             
-            // Boss moves faster and attacks more frequently
-            boss.setTint(0xff6666);
+            // Boss transformation animation
+            gameScene.tweens.add({
+                targets: boss,
+                scaleX: 0.5,
+                scaleY: 0.5,
+                angle: 360,
+                duration: 1000,
+                ease: 'Back.easeOut',
+                onComplete: () => {
+                    // Change to final form sprite
+                    boss.setTexture('paulo_supla_final_form');
+                    boss.angle = 0;
+                    bossCurrentSprite = 'final_form';
+                    
+                    // Remove invulnerability
+                    bossInvulnerable = false;
+                    
+                    // Visual effect - electric aura
+                    const auraText = gameScene.add.text(boss.x, boss.y + 80, '🎸⚡🎸', {
+                        fontSize: '32px',
+                        fill: '#ffff00'
+                    });
+                    auraText.setOrigin(0.5);
+                    
+                    gameScene.tweens.add({
+                        targets: auraText,
+                        alpha: 0,
+                        y: boss.y + 120,
+                        duration: 1500,
+                        onComplete: () => auraText.destroy()
+                    });
+                }
+            });
         }
 
         function hitPlayer(player, projectile) {
@@ -912,12 +925,6 @@
 
             // Update boss sprite animations
             if (bossActive && boss && boss.active) {
-                // Log every second after taking damage
-                if (bossHealth < 100 && gameScene.game.getFrame() % 60 === 0) {
-                    console.log('UPDATE LOOP - Boss still in update. Health:', bossHealth, 'Pos:', Math.floor(boss.x), Math.floor(boss.y), 
-                                'Active:', boss.active, 'Visible:', boss.visible, 'Alpha:', boss.alpha, 'Texture:', boss.texture.key);
-                }
-                
                 // Safety check for boss.body
                 if (!boss.body) {
                     console.error('Boss body is null!');
@@ -928,13 +935,20 @@
                 if (bossSpriteTimer > 0) {
                     bossSpriteTimer--;
                     if (bossSpriteTimer === 0) {
-                        // Return to idle or appropriate sprite
-                        if (Math.abs(boss.body.velocity.x) > 10) {
-                            boss.setTexture('paulo_supla_walk');
-                            bossCurrentSprite = 'walk';
+                        // Return to idle or appropriate sprite based on phase
+                        if (bossPhase === 2) {
+                            // Phase 2 - Final form
+                            boss.setTexture('paulo_supla_final_form');
+                            bossCurrentSprite = 'final_form';
                         } else {
-                            boss.setTexture('paulo_supla_bits');
-                            bossCurrentSprite = 'idle';
+                            // Phase 1 - Normal form
+                            if (Math.abs(boss.body.velocity.x) > 10) {
+                                boss.setTexture('paulo_supla_walk');
+                                bossCurrentSprite = 'walk';
+                            } else {
+                                boss.setTexture('paulo_supla_bits');
+                                bossCurrentSprite = 'idle';
+                            }
                         }
                     }
                 }
@@ -952,8 +966,8 @@
                         boss.setFlipX(true);
                     }
                     
-                    // Set walk sprite if not attacking
-                    if (bossSpriteTimer === 0 && bossCurrentSprite !== 'walk') {
+                    // Set walk sprite if not attacking (only in phase 1)
+                    if (bossPhase === 1 && bossSpriteTimer === 0 && bossCurrentSprite !== 'walk') {
                         boss.setTexture('paulo_supla_walk');
                         bossCurrentSprite = 'walk';
                     }
@@ -967,23 +981,28 @@
                         boss.setFlipX(false);
                     }
                     
-                    // Set walk sprite if not attacking
-                    if (bossSpriteTimer === 0 && bossCurrentSprite !== 'walk') {
+                    // Set walk sprite if not attacking (only in phase 1)
+                    if (bossPhase === 1 && bossSpriteTimer === 0 && bossCurrentSprite !== 'walk') {
                         boss.setTexture('paulo_supla_walk');
                         bossCurrentSprite = 'walk';
                     }
                 } else {
                     boss.setVelocityX(0);
                     
-                    // Set idle sprite if not attacking
-                    if (bossSpriteTimer === 0 && bossCurrentSprite !== 'idle') {
-                        boss.setTexture('paulo_supla_bits');
-                        bossCurrentSprite = 'idle';
+                    // Set idle sprite if not attacking (phase dependent)
+                    if (bossSpriteTimer === 0) {
+                        if (bossPhase === 2 && bossCurrentSprite !== 'final_form') {
+                            boss.setTexture('paulo_supla_final_form');
+                            bossCurrentSprite = 'final_form';
+                        } else if (bossPhase === 1 && bossCurrentSprite !== 'idle') {
+                            boss.setTexture('paulo_supla_bits');
+                            bossCurrentSprite = 'idle';
+                        }
                     }
                 }
 
-                // Boss jump occasionally
-                if (boss.body.touching.down && Phaser.Math.Between(0, 100) < 3) {
+                // Boss jump occasionally (only in phase 1)
+                if (bossPhase === 1 && boss.body.touching.down && Phaser.Math.Between(0, 100) < 3) {
                     boss.setVelocityY(-400);
                     
                     // Set jump sprite
@@ -1006,18 +1025,12 @@
                 }
 
                 // Boss attack
-                const attackRate = bossPhase === 2 ? 80 : 120;
+                const attackRate = bossPhase === 2 ? 80 : 280;
                 if (bossAttackCooldown === 0) {
                     bossShoot();
                     bossAttackCooldown = attackRate;
                 } else {
                     bossAttackCooldown--;
-                }
-            } else {
-                // Boss is NOT being updated!
-                if (bossActive && gameScene.game.getFrame() % 60 === 0) {
-                    console.error('CRITICAL: bossActive is true but boss not in update loop!');
-                    console.error('boss exists?', !!boss, 'boss.active?', boss ? boss.active : 'null');
                 }
             }
 
